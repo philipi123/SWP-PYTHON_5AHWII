@@ -10,6 +10,9 @@ class LinkedList:
         self.head = None
     
     def add_last(self, data):
+        """
+        Fügt ein neues Element am Ende der Liste hinzu.
+        """
         new_node = Node(data)
         if self.head is None:
             self.head = new_node
@@ -20,10 +23,16 @@ class LinkedList:
         last.next = new_node
     
     def __iter__(self):
+        """
+        Implementiert das Iterator-Protokoll für die Liste.
+        """
         self.current = self.head
         return self
     
     def __next__(self):
+        """
+        Gibt das nächste Element in der Liste zurück.
+        """
         if self.current is None:
             raise StopIteration
         data = self.current.data
@@ -31,6 +40,9 @@ class LinkedList:
         return data
     
     def print_list(self):
+        """
+        Gibt alle Elemente in der Liste aus.
+        """
         current = self.head
         while current:
             print(current.data, end=" ")
@@ -38,6 +50,9 @@ class LinkedList:
         print()
     
     def length(self):
+        """
+        Gibt die Länge der Liste zurück.
+        """
         count = 0
         current = self.head
         while current:
