@@ -1,0 +1,130 @@
+import random
+import json
+import os
+import sqlite3
+import requests
+
+# Stelle sicher, dass diese Pfade und URLs deiner Umgebung entsprechen
+DATABASE_PATH = 'spiel_statistik.db'
+WEB_SERVER_URL = 'http://your-web-server-url.com/upload'  # Beispiel URL
+
+def initialize_database():
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS statistics
+             (type TEXT PRIMARY KEY, count INTEGER)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS choices
+             (choice TEXT PRIMARY KEY, count INTEGER)''')
+    conn.commit()
+    conn.close()
+
+def update_database(stats, choices):
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    for key, value in stats.items():
+        cursor.execute("INSERT OR REPLACE INTO statistics (type, count) VALUES (?, ?)", (key, value))
+
+    for key, value in choices.items():
+        cursor.execute("INSERT OR REPLACE INTO choices (choice, count) VALUES (?, ?)", (key, value))
+    
+    conn.commit()
+    conn.close()
+
+def post_data_to_server(data):
+    try:
+        response = requests.post(WEB_SERVER_URL, data=data)
+        print("Daten erfolgreich gesendet: ", response.text)
+    except Exception as e:
+        print("Fehler beim Senden der Daten: ", e)
+
+def load_statistics():
+    if os.path.exists("spiel_statistik.json"):
+        with open("spiel_statistik.json", "r") as file:
+            return json.load(file)
+    return {"Gesamtspiele": 0, "Spieler gewinnt": 0, "Computer gewinnt": 0, "Unentschieden": 0, "Symbole": {"Stein": 0, "Papier": 0, "Schere": 0, "Echse": 0, "Spock": 0}}
+
+def save_statistics(stats):
+    with open("spiel_statistik.json", "w") as file:
+        json.dump(stats, file)
+
+    # Update SQLite database
+    update_database(stats, stats["Symbole"])
+
+    # Prepare and send data to the server
+    data = {"stats": json.dumps(stats)}
+    post_data_to_server(data)
+
+def update_statistics(stats, result, player_choice):
+    stats["Gesamtspiele"] += 1
+    stats["Symbole"][player_choice] += 1
+
+    if result == "Sie gewinnen!":
+        stats["Spieler gewinnt"] += 1
+    elif result == "Computer gewinnt!":
+        stats["Computer gewinnt"] += 1
+    else:
+        stats["Unentschieden"] += 1
+    return stats
+
+def print_options():
+    print("\nStein, Papier, Schere, Echse, Spock:")  
+
+def player_input():
+    return input("Geben Sie Ihre Wahl ein: ")  
+
+def computer_input():
+    return random.choice(["Stein", "Papier", "Schere", "Echse", "Spock"])  
+
+def check_win(player, computer):
+    if player == computer:
+        return "Unentschieden!"
+
+    win_conditions = {
+        "Stein": ["Schere", "Echse"],
+        "Papier": ["Stein", "Spock"],
+        "Schere": ["Papier", "Echse"],
+        "Echse": ["Spock", "Papier"],
+        "Spock": ["Schere", "Stein"]
+    }
+
+    if computer in win_conditions[player]:
+        return "Sie gewinnen!"
+    else:
+        return "Computer gewinnt!"
+
+def print_statistics(stats):
+    print("\nSpielstatistiken:")
+    for key, value in stats.items():
+        if key != "Symbole":
+            print(f"{key}: {value}")
+        else:
+            print("\nSymbolstatistik:")
+            for symbol, count in value.items():
+                print(f"{symbol}: {count}")
+
+def main():
+    initialize_database()
+    stats = load_statistics()
+    while True:
+        print("\n1. Spielen\n2. Statistik anzeigen\n3. Beenden")
+        choice = input("Wählen Sie eine Option: ")
+        if choice == "1":
+            print_options()
+            player = player_input()
+            computer = computer_input()
+            result = check_win(player, computer)
+            print(f"Sie: {player}, Computer: {computer}")
+            print(result)
+            stats = update_statistics(stats, result, player)
+            save_statistics(stats)
+        elif choice == "2":
+            print_statistics(stats)
+        elif choice == "3":
+            break
+        else:
+            print("Ungültige Eingabe. Bitte wählen Sie 1, 2 oder 3.")
+
+if __name__ == "__main__":
+    main()
+
