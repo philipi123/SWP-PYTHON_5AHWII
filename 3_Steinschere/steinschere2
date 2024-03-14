@@ -4,7 +4,6 @@ import os
 import sqlite3
 import requests
 
-# Stelle sicher, dass diese Pfade und URLs deiner Umgebung entsprechen
 DATABASE_PATH = 'spiel_statistik.db'
 WEB_SERVER_URL = 'http://your-web-server-url.com/upload'  # Beispiel URL
 
